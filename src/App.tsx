@@ -1,26 +1,47 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, {useEffect} from 'react';
 import './App.css';
+import {BrowserRouter as Router, Routes, Route} from "react-router-dom";
+import {Header} from "./components/headerComponent/Header";
+import Footer from "./components/footerComponent/Footer";
+import MainPage from "./components/pages/MainPage";
+import {Form} from "./components/auth/Form";
+import {useDispatch} from "react-redux";
+import {checkAuth, loginUser, setAuth} from "./actions/action";
+import Cookies from 'js-cookie';
+import Catalog from "./components/pages/Catalog";
+import Cart from "./components/pages/Cart";
+import {WishlistPage} from "./components/pages/Wishlist";
+import {ProductCategory} from "./components/pages/ProductCategory";
+import Profile from "./components/pages/Profile";
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    const dispatch = useDispatch();
+    useEffect(() => {
+        if (Cookies.get('refresh_token')) {
+            checkAuth().then(data => {
+                dispatch(setAuth(true))
+                dispatch(loginUser(data!.data))
+            })
+        }
+    }, [])
+
+    return (
+        <div className="App">
+            <Router>
+                <Header />
+                <Routes>
+                    <Route path={'/'} element={<MainPage/>}/>
+                    <Route path={'/auth'} element={<Form/>}/>
+                    <Route path={'/catalog'} element={<Catalog/>}/>
+                    <Route path={'/cart'} element={<Cart/>}/>
+                    <Route path={'/wishlist'} element={<WishlistPage/>}/>
+                    <Route path={'/catalog/:category_name'} element={<ProductCategory/>}/>
+                    <Route path={'/profile/:id'} element={<Profile/>}/>
+                </Routes>
+                <Footer />
+            </Router>
+        </div>
+    );
 }
 
 export default App;
