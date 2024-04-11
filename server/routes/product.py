@@ -115,7 +115,8 @@ def get_category(category_id: int, db: Session = Depends(get_database_session)):
 def create_category(category: schemas.product.CategoryCreate, db: Session = Depends(get_database_session)):
     new_category = Category(
         name=category.name,
-        description=category.description
+        description=category.description,
+        image_url=category.image_url
     )
     db.add(new_category)
     db.commit()

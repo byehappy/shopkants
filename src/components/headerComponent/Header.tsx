@@ -126,9 +126,9 @@ export const Header = () => {
                 <Link to={'/catalog'}>
                     <Button variant='outlined'>Каталог</Button>
                 </Link>
-                <div>
-                    Скидки
-                </div>
+                { curUser.admin &&<div>
+                    <a href={"/admin/products"}>Админка</a>
+                </div> }
                 <div>
                     Акции
                 </div>
