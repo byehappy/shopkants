@@ -13,6 +13,7 @@ import Cart from "./components/pages/Cart";
 import {WishlistPage} from "./components/pages/Wishlist";
 import {ProductCategory} from "./components/pages/ProductCategory";
 import Profile from "./components/pages/Profile";
+import {AdminPanel} from "./components/pages/AdminPanel";
 
 function App() {
     const dispatch = useDispatch();
@@ -37,6 +38,7 @@ function App() {
                     <Route path={'/wishlist'} element={<WishlistPage/>}/>
                     <Route path={'/catalog/:category_name'} element={<ProductCategory/>}/>
                     <Route path={'/profile/:id'} element={<Profile/>}/>
+                    <Route path={'/admin/*'} element={<AdminPanel/>}/>
                 </Routes>
                 <Footer />
             </Router>

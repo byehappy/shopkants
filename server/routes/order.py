@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
 
+import schemas.order
 from config.db import SessionLocal
 from models.order import Order, OrderStatus, OrderItem
 from schemas.order import OrderCreate, OrderUpdate, OrderOut, OrderDetailOut, OrderDetailCreate, OrderDetailUpdate, \
@@ -28,6 +29,10 @@ def get_order(order_id: int, db: Session = Depends(get_database_session)):
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
+@router.get("/orders/get/all", tags=["orders"], response_model=List[schemas.order.OrderOut])
+def get_all_orders(db: Session = Depends(get_database_session)):
+    orders = db.query(Order).all()
+    return orders
 
 @router.get("/orders/user/{user_id}", tags=["orders"])
 def get_order(user_id: int, db: Session = Depends(get_database_session)):
@@ -101,7 +106,7 @@ def create_order_details(order_id: int, order_details: OrderDetailCreate, db: Se
         raise HTTPException(status_code=404, detail="Order not found")
 
     new_order_status = []
-    new_status = OrderStatus(status="в обработке", order_id=order_id)
+    new_status = OrderStatus(status="new", order_id=order_id)
     db.add(new_status)
     new_order_status.append(new_status)
 
@@ -183,9 +188,9 @@ def get_order_statuses(order_id: int, db: Session = Depends(get_database_session
     return order_status_out_list
 
 
-@router.get("/orders/{order_id}/status/{status_id}", tags=["orders"], response_model=OrderStatusOut)
-def get_order_status(order_id: int, status_id: int, db: Session = Depends(get_database_session)):
-    status = db.query(OrderStatus).filter(OrderStatus.order_id == order_id, OrderStatus.id == status_id).first()
+@router.get("/orders/{order_id}/status", tags=["orders"], response_model=OrderStatusOut)
+def get_order_status(order_id: int, db: Session = Depends(get_database_session)):
+    status = db.query(OrderStatus).filter(OrderStatus.order_id == order_id).first()
     if not status:
         raise HTTPException(status_code=404, detail="Order status not found")
 
@@ -222,10 +227,9 @@ def create_order_status(order_id: int, status: OrderStatusCreate, db: Session = 
     return order_status_out
 
 
-@router.put("/orders/{order_id}/status/{status_id}", tags=["orders"], response_model=OrderStatusOut)
+@router.put("/orders/{order_id}/status", tags=["orders"], response_model=OrderStatusOut)
 def update_order_status(
         order_id: int,
-        status_id: int,
         status: OrderStatusUpdate,
         db: Session = Depends(get_database_session)
 ):
@@ -233,7 +237,7 @@ def update_order_status(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    existing_status = db.query(OrderStatus).get(status_id)
+    existing_status = db.query(OrderStatus).filter(OrderStatus.order_id == order_id).first()
     if not existing_status:
         raise HTTPException(status_code=404, detail="Order status not found")
 
@@ -252,16 +256,40 @@ def update_order_status(
     return order_status_out
 
 
-@router.delete("/orders/{order_id}/status/{status_id}", tags=["orders"])
-def delete_order_status(order_id: int, status_id: int, db: Session = Depends(get_database_session)):
+@router.delete("/orders/{order_id}/status", tags=["orders"])
+def delete_order_status(order_id: int, db: Session = Depends(get_database_session)):
     order = db.query(Order).get(order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    status = db.query(OrderStatus).filter(OrderStatus.order_id == order_id, OrderStatus.id == status_id).first()
+    status = db.query(OrderStatus).filter(OrderStatus.order_id == order_id).first()
     if not status:
         raise HTTPException(status_code=404, detail="Order status not found")
 
     db.delete(status)
     db.commit()
     return {"message": "Order status deleted successfully"}
+
+@router.patch("/orders/{order_id}/status", tags=["orders"], response_model=schemas.order.OrderStatusOut)
+def patch_order_status(order_id: int, status_update: OrderStatusUpdate, db: Session = Depends(get_database_session)):
+    # Поиск заказа
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Поиск статуса заказа
+    order_status = db.query(OrderStatus).filter(OrderStatus.order_id == order_id).first()
+    if not order_status:
+        raise HTTPException(status_code=404, detail="Order status not found")
+
+    # Обновление статуса заказа
+    for field, value in status_update.dict(exclude_unset=True).items():
+        setattr(order_status, field, value)
+
+    # Обновление времени изменения статуса заказа
+    order_status.status_date = datetime.now()
+
+    db.commit()
+    db.refresh(order_status)
+
+    return order_status
